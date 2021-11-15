@@ -200,6 +200,60 @@ var
                 l := l + SizeOf(Int16);
               end;
           end;
+//c	  signed char
+        'c' :
+          begin
+            bw.Write(Int8(acaP[j]));
+            l := l + SizeOf(Int8);
+          end;
+//C 	unsigned char
+        'C' :
+          begin
+            bw.Write(UInt8(acaP[j]));
+            l := l + SizeOf(UInt8);
+          end;
+//i 	signed integer (machine dependent size and byte order)
+//l 	signed long (always 32 bit, machine byte order)
+        'i', 'l' :
+          begin
+            if (cf = 'l') or ((cf = 'i') and (SizeOf(NativeInt) = 4)) then
+              begin
+                if LEByteOrder then
+                  bw.Write(Int32(acaP[j]))
+                else
+                  bw.Write(SwapBytes32(Int32(acaP[j])));
+                l := l + 4;
+              end
+            else  //8
+              begin
+                if LEByteOrder then
+                  bw.Write(Int64(acaP[j]))
+                else
+                  bw.Write(SwapBytes64(Int64(acaP[j])));
+                l := l + 8;
+              end;
+          end;
+//I 	unsigned integer (machine dependent size and byte order)
+        'I' :
+          begin
+            if SizeOf(NativeUInt) = 4 then
+              begin
+                if LEByteOrder then
+                  bw.Write(UInt32(acaP[j]))
+                else
+                  bw.Write(SwapBytesU32(UInt32(acaP[j])));
+                l := l + 4;
+              end
+            else //8
+              begin
+                if LEByteOrder then
+                  bw.Write(UInt64(acaP[j]))
+                else
+                  bw.Write(SwapBytesU64(UInt64(acaP[j])));
+                l := l + 8;
+              end;
+          end;
+
 
       end;
       i := i + 1;
@@ -209,11 +263,8 @@ var
   Result := Copy(bs.Bytes, 0, l);
 end;
 //  Code 	Description
-//c	  signed char
-//C 	unsigned char
-//i 	signed integer (machine dependent size and byte order)
-//I 	unsigned integer (machine dependent size and byte order)
-//l 	signed long (always 32 bit, machine byte order)
+
+
 //x 	NUL byte
 //X 	Back up one byte
 //Z 	NUL-padded string
