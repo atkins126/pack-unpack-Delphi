@@ -3,8 +3,8 @@ unit uPackUnpack;
 interface
 uses SysUtils, StrUtils, Generics.Collections, Classes, System.Generics.Collections, Math, uSwapBytes;
 
-function Pack (sFormat : string; acaP : array of TCharArray) : TBytes;
-function UnPack(sFormat : string; valtu : TBytes) : TDictionary<string,Variant>;
+function Pack (sFormat : string; acaParam : array of TCharArray) : TBytes;
+function UnPack(sFormat : string; abVal : TBytes) : TDictionary<string,Variant>;
 
 implementation
 
@@ -17,7 +17,7 @@ begin
     Result := c2;
 end;
 
-function Pack (sFormat : string; acaP : array of TCharArray) : TBytes;
+function Pack (sFormat : string; acaParam : array of TCharArray) : TBytes;
 var
   bs : TBytesStream;
   bw : TBinaryWriter;
@@ -53,22 +53,23 @@ var
       case cf of
 //A 	SPACE-padded string
 //a 	NUL-padded string
-        'A', 'a' :
+//Z 	NUL-padded string
+        'A', 'a', 'Z' :
           begin
-            var tvlen := Length(acaP[j]);
+            var tvlen := Length(acaParam[j]);
             if (utlen = 0) or (utlen = tvlen) then
               begin
-                bw.Write(acaP[j]);
+                bw.Write(acaParam[j]);
                 l := l + tvlen;
               end
             else
               begin
                 l := l + utlen;
                 if (utlen < tvlen) then
-                  bw.Write(Copy(acaP[j], 0, utlen))
+                  bw.Write(Copy(acaParam[j], 0, utlen))
                 else
                   begin
-                    bw.Write(acaP[j]);
+                    bw.Write(acaParam[j]);
                     bw.Write(StringOfChar(IfThenChar(cf = 'A',' ', #0), utlen - tvlen).ToCharArray);
                   end;
               end
@@ -78,16 +79,16 @@ var
         'H', 'h':
           begin
             var uT : UInt64 := 0;
-            var uL : UInt64 := IfThen((utlen = 0) or (utlen >= Length(acaP[j])), Length(acaP[j]), utlen);
+            var uL : UInt64 := IfThen((utlen = 0) or (utlen >= Length(acaParam[j])), Length(acaParam[j]), utlen);
             while uT < uL do
               begin
                 if uL - uT >= 2 then
                   begin
-                    bw.Write(StrToInt('$' + IfThen(cf = 'H', acaP[j][uT] + acaP[j][uT+1], acaP[j][uT + 1] + acaP[j][uT])));
+                    bw.Write(StrToInt('$' + IfThen(cf = 'H', acaParam[j][uT] + acaParam[j][uT+1], acaParam[j][uT + 1] + acaParam[j][uT])));
                     uT := uT + 1;
                   end
                 else
-                  bw.Write(StrToInt('$' + IfThen(cf = 'H', acaP[j][uT] + '0', '0' + acaP[j][uT])));
+                  bw.Write(StrToInt('$' + IfThen(cf = 'H', acaParam[j][uT] + '0', '0' + acaParam[j][uT])));
                 uT := uT + 1;
                 l := l + 1;
               end;
@@ -99,12 +100,12 @@ var
           begin
             if (cf = 'P') or ((cf = 'Q') and LEByteOrder) then
               begin
-                bw.Write(UInt64(acaP[j]));
+                bw.Write(UInt64(acaParam[j]));
                 l:= l + SizeOf(UInt64);
               end
             else
               begin
-                bw.Write(SwapBytesU64(UInt64(acaP[j])));
+                bw.Write(SwapBytesU64(UInt64(acaParam[j])));
                 l:= l + SizeOf(UInt64);
               end;
           end;
@@ -115,12 +116,12 @@ var
           begin
             if (cf = 'v') or ((cf = 'S') and LEByteOrder) then
               begin
-                bw.Write(UInt16(acaP[j]));
+                bw.Write(UInt16(acaParam[j]));
                 l := l + SizeOf(UInt16);
               end
             else
               begin
-                bw.Write(SwapBytesU16(UInt16(acaP[j])));
+                bw.Write(SwapBytesU16(UInt16(acaParam[j])));
                 l := l + SizeOf(UInt16);
               end;
           end;
@@ -131,12 +132,12 @@ var
           begin
             if (cf = 'g') or ((cf = 'f') and LEByteOrder) then
               begin
-                bw.Write(Single(acaP[j]));
+                bw.Write(Single(acaParam[j]));
                 l := l + SizeOf(Single);
               end
             else
               begin
-                bw.Write(SwapBytes32(Single(acaP[j])));
+                bw.Write(SwapBytes32(Single(acaParam[j])));
                 l := l + SizeOf(Single);
               end;
           end;
@@ -147,12 +148,12 @@ var
           begin
             if (cf = 'e') or ((cf = 'd') and LEByteOrder) then
               begin
-                bw.Write(string(acaP[j]).ToDouble);
+                bw.Write(string(acaParam[j]).ToDouble);
                 l := l + SizeOf(Double);
               end
             else
               begin
-                bw.Write(SwapBytes64(string(acaP[j]).ToDouble));
+                bw.Write(SwapBytes64(string(acaParam[j]).ToDouble));
                 l := l + SizeOf(Double);
               end;
           end;
@@ -163,12 +164,12 @@ var
           begin
             if (cf = 'V') or ((cf = 'L') and LEByteOrder) then
               begin
-                bw.Write(UInt32(acaP[j]));
+                bw.Write(UInt32(acaParam[j]));
                 l := l + SizeOf(UInt32);
               end
             else
               begin
-                bw.Write(SwapBytesU32(UInt32(acaP[j])));
+                bw.Write(SwapBytesU32(UInt32(acaParam[j])));
                 l := l + SizeOf(UInt32);
               end;
           end;
@@ -177,12 +178,12 @@ var
           begin
             if LEByteOrder then
               begin
-                bw.Write(Int64(acaP[j]));
+                bw.Write(Int64(acaParam[j]));
                 l := l + SizeOf(Int64);
               end
             else
               begin
-                bw.Write(SwapBytes64(Int64(acaP[j])));
+                bw.Write(SwapBytes64(Int64(acaParam[j])));
                 l := l + SizeOf(Int64);
               end;
           end;
@@ -191,25 +192,25 @@ var
           begin
             if LEByteOrder then
               begin
-                bw.Write(Int16(acaP[j]));
+                bw.Write(Int16(acaParam[j]));
                 l := l + SizeOf(Int16);
               end
             else
               begin
-                bw.Write(SwapBytes16(Int16(acaP[j])));
+                bw.Write(SwapBytes16(Int16(acaParam[j])));
                 l := l + SizeOf(Int16);
               end;
           end;
 //c	  signed char
         'c' :
           begin
-            bw.Write(Int8(acaP[j]));
+            bw.Write(Int8(acaParam[j]));
             l := l + SizeOf(Int8);
           end;
 //C 	unsigned char
         'C' :
           begin
-            bw.Write(UInt8(acaP[j]));
+            bw.Write(UInt8(acaParam[j]));
             l := l + SizeOf(UInt8);
           end;
 //i 	signed integer (machine dependent size and byte order)
@@ -219,17 +220,17 @@ var
             if (cf = 'l') or ((cf = 'i') and (SizeOf(NativeInt) = 4)) then
               begin
                 if LEByteOrder then
-                  bw.Write(Int32(acaP[j]))
+                  bw.Write(Int32(acaParam[j]))
                 else
-                  bw.Write(SwapBytes32(Int32(acaP[j])));
+                  bw.Write(SwapBytes32(Int32(acaParam[j])));
                 l := l + 4;
               end
             else  //8
               begin
                 if LEByteOrder then
-                  bw.Write(Int64(acaP[j]))
+                  bw.Write(Int64(acaParam[j]))
                 else
-                  bw.Write(SwapBytes64(Int64(acaP[j])));
+                  bw.Write(SwapBytes64(Int64(acaParam[j])));
                 l := l + 8;
               end;
           end;
@@ -239,17 +240,17 @@ var
             if SizeOf(NativeUInt) = 4 then
               begin
                 if LEByteOrder then
-                  bw.Write(UInt32(acaP[j]))
+                  bw.Write(UInt32(acaParam[j]))
                 else
-                  bw.Write(SwapBytesU32(UInt32(acaP[j])));
+                  bw.Write(SwapBytesU32(UInt32(acaParam[j])));
                 l := l + 4;
               end
             else //8
               begin
                 if LEByteOrder then
-                  bw.Write(UInt64(acaP[j]))
+                  bw.Write(UInt64(acaParam[j]))
                 else
-                  bw.Write(SwapBytesU64(UInt64(acaP[j])));
+                  bw.Write(SwapBytesU64(UInt64(acaParam[j])));
                 l := l + 8;
               end;
           end;
@@ -263,15 +264,11 @@ var
   Result := Copy(bs.Bytes, 0, l);
 end;
 //  Code 	Description
-
-
 //x 	NUL byte
 //X 	Back up one byte
-//Z 	NUL-padded string
 //@ 	NUL-fill to absolute position
 
-
-function UnPack(sFormat : string; valtu : TBytes) : TDictionary<string,Variant>;
+function UnPack(sFormat : string; abVal : TBytes) : TDictionary<string,Variant>;
 var
   asFormat : TArray<string>;
 //  bs : TBytesStream;
